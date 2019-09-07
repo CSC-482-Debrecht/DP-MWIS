@@ -31,40 +31,9 @@ void CalcConflicts(Job jobs[], int c[], int size) {
 	}
 }
 
-// Driver Program
-int main() {
-	//const long long INF = (1 << 16);
-	const int NUM_EVENTS = 12;
+int CalcOptimal(Job events[], int c[], const int NUM_EVENTS) {
 	int OPT[NUM_EVENTS + 1][NUM_EVENTS + 1][1<<NUM_EVENTS];
 	memset(OPT, -1, sizeof(OPT));
-	int c[NUM_EVENTS];
-
-	Job events[NUM_EVENTS+1];
-	events[1] = Job(1,4,4);
-	events[2] = Job(1,4,1);
-	events[3] = Job(2,4,3);
-	events[4] = Job(2,6,3);
-	events[5] = Job(3,7,5);
-	events[6] = Job(5,9,2);
-	events[7] = Job(6,11,3);
-	events[8] = Job(8,12,3);
-	events[9] = Job(7,13,7);
-	events[10] = Job(2,14,9);
-	events[11] = Job(10,15,4);
-	events[12] = Job(10,15,3);
-
-	QuickSort<Job>(events, 0, NUM_EVENTS);
-
-	//	for (int i = 0; i < NUM_EVENTS + 1; ++i) {
-	//		cout << "Event: " << i << " Start: " << events[i].getStart() << " End: " << events[i].getEnd() << " Weight: " << events[i].getValue() << "\n";
-	//	}
-
-	CalcConflicts(events, c, NUM_EVENTS + 1);
-
-	//	for (int i = 0; i < NUM_EVENTS + 1; ++i) {
-	//		cout << "First event that does not conflict with event " << i << " is " << c[i] << "\n";
-	//	}
-
 	int option1, option2, option3, option4;
 	for (int i = 0; i < 1<<NUM_EVENTS; ++i) {
 		OPT[0][0][i] = 0;
@@ -95,6 +64,39 @@ int main() {
 		}
 	}
 
-	cout << OPT[NUM_EVENTS][NUM_EVENTS][(1 << NUM_EVENTS)-1];
+	return OPT[NUM_EVENTS][NUM_EVENTS][(1 << NUM_EVENTS)-1];
+}
+
+int main() {
+	const int NUM_EVENTS = 12;
+	int c[NUM_EVENTS];
+
+	Job events[NUM_EVENTS+1];
+	events[1] = Job(1,4,4);
+	events[2] = Job(1,4,1);
+	events[3] = Job(2,4,3);
+	events[4] = Job(2,6,3);
+	events[5] = Job(3,7,5);
+	events[6] = Job(5,9,2);
+	events[7] = Job(6,11,3);
+	events[8] = Job(8,12,3);
+	events[9] = Job(7,13,7);
+	events[10] = Job(2,14,9);
+	events[11] = Job(10,15,4);
+	events[12] = Job(10,15,3);
+
+	QuickSort<Job>(events, 0, NUM_EVENTS);
+
+	//	for (int i = 0; i < NUM_EVENTS + 1; ++i) {
+	//		cout << "Event: " << i << " Start: " << events[i].getStart() << " End: " << events[i].getEnd() << " Weight: " << events[i].getValue() << "\n";
+	//	}
+
+	CalcConflicts(events, c, NUM_EVENTS + 1);
+
+	//	for (int i = 0; i < NUM_EVENTS + 1; ++i) {
+	//		cout << "First event that does not conflict with event " << i << " is " << c[i] << "\n";
+	//	}
+
+	cout << CalcOptimal(events, c, NUM_EVENTS);
 
 }
