@@ -74,17 +74,22 @@ int main() {
 			// mask is k bits long. The n-th bit is unset if event n has been used.
 			for (int mask = (1 << k) - 1; mask >= 0; --mask) {
 				// k > j
-				option1 = OPT[j-1][k-1][mask >> 1]*(j > 0);
-				option2 = (OPT[j-1][c[k]][(mask &~ 1) >> min(k-(j-1), k-c[k])] + events[k].getValue())*(mask & 1U)*(j > 0); // Check if we've used k yet
-				option3 = (OPT[c[j]][k-1][(mask &~ (1UL << (k-j))) >> min(k-c[j], 1)] + events[j].getValue())*((mask >> (k-j)) & 1U); // Check if we've used j yet. The bit of interest is a distance k-j from the rightmost bit.
-				// Can't take both j and k if they are equal
-				option4 = (OPT[c[j]][c[k]][(mask &~ (1UL << (j-1))*(j>0) &~ (1UL << (k-1))) >> min(k-c[k], k-c[j])] + events[j].getValue() + events[k].getValue())*((mask >> (k-j)) & 1U)*(mask & 1U)*(j != k);
-				//				} else {
-				//					option1 = 0;
-				//					option2 = 0;
-				//					option3 = OPT[0][k-1][mask >> 1];
-				//					option4 = (OPT[0][c[k]][(mask &~ (1UL << (k-1))) >> (k-c[k])] + events[k].getValue())*(mask & 1U);
-				//				}
+				if (j > 0) {
+					option1 = OPT[j-1][k-1][mask >> 1];
+					option2 = (OPT[j-1][c[k]][(mask &~ 1) >> min(k-(j-1), k-c[k])] + events[k].getValue())*(mask & 1U); // Check if we've used k yet
+					option3 = (OPT[c[j]][k-1][(mask &~ (1UL << (k-j))) >> min(k-c[j], 1)] + events[j].getValue())*((mask >> (k-j)) & 1U); // Check if we've used j yet. The bit of interest is a distance k-j from the rightmost bit.
+					// Can't take both j and k if they are equal
+					if(j != k) {
+						option4 = (OPT[c[j]][c[k]][(mask &~ (1UL << (j-1)) &~ (1UL << (k-1))) >> min(k-c[k], k-c[j])] + events[j].getValue() + events[k].getValue())*((mask >> (k-j)) & 1U)*(mask & 1U);
+					} else {
+						option4 = 0;
+					}
+				} else {
+					option1 = 0;
+					option2 = 0;
+					option3 = OPT[0][k-1][mask >> 1];
+					option4 = (OPT[0][c[k]][(mask &~ (1UL << (k-1))) >> (k-c[k])] + events[k].getValue())*(mask & 1U);
+				}
 				OPT[j][k][mask] = OPT[k][j][mask] = max(max(max(option1, option2),option3),option4);
 			}
 		}
