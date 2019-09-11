@@ -13,6 +13,7 @@
 #include <vector>
 using std::max; using std::cout; using std::max;
 
+// A few globals, for ease of reference in main
 const int NUM_EVENTS = 12;
 int OPT[NUM_EVENTS + 1][NUM_EVENTS + 1];
 std::set<int> selectedEventsP1[NUM_EVENTS+1][NUM_EVENTS+1];
@@ -20,6 +21,7 @@ std::set<int> selectedEventsP2[NUM_EVENTS+1][NUM_EVENTS+1];
 
 // Determine latest possible non-conflicting event for each event l
 void CalcConflicts(Job jobs[], int c[], int size) {
+	// Get start and end times for each job
 	c[0] = 0;
 	int endTimes[size];
 	int startTimes[size];
@@ -28,8 +30,11 @@ void CalcConflicts(Job jobs[], int c[], int size) {
 		startTimes[i] = jobs[i].getStart();
 	}
 
+	// Vectorize for use with upper_bound
 	std::vector<int> vec(endTimes, endTimes + size);
 
+	// Get c(l) for all l
+	// Find first end time > start time l. Previous event is last earlier non-conflicting event.
 	std::vector<int>::iterator upper;
 	for (int l = 1; l < size; ++l) {
 		upper = std::upper_bound(vec.begin(), vec.end(), startTimes[l]);
@@ -39,19 +44,24 @@ void CalcConflicts(Job jobs[], int c[], int size) {
 
 // Determine value of optimal solution
 void CalcOptimal(Job events[], int c[], const int NUM_EVENTS) {
+	// Sum(v_1..v_n) must be less than INF
 	const int INF = 1<<16;
 
 	// Base case -- when no one goes to anything, value is 0
 	OPT[0][0] = 0;
 
-
-	// Loop over all possible combinations of j, k, and already-chosen events
+	// Also sets an auxiliary array that keeps track of the event combinations chosen for each optimal solution
+	// Loop over all possible combinations of j and k
 	for (int j = 0; j < NUM_EVENTS + 1; ++j) {
 		for (int k = j; k < NUM_EVENTS + 1; ++k) {
+			// If they're equal, this option is impossible
 			if (j == k) {
-				if (j != 0)	OPT[j][k] = -INF;
+				if (j != 0)	OPT[j][k] = -INF; // (protect base case)
+			// If they're not equal, then we can set both OPT[j][k] and OPT[k][j] in the same step (symmetric under exchange of people)
 			} else {
+				// Reset curMax each time
 				int curMax = 0;
+				// Loop through all events guaranteed not to conflict with an earlier choice
 				for (int l = c[j]; l <= c[k]; ++l) {
 					if (OPT[j][l] > curMax) {
 						curMax = OPT[j][l];
@@ -64,13 +74,15 @@ void CalcOptimal(Job events[], int c[], const int NUM_EVENTS) {
 						selectedEventsP1[k][j] = selectedEventsP1[l][j];
 						selectedEventsP2[k][j] = selectedEventsP2[l][j];
 					}
+					// If you didn't want to keep track of chosen events, you could use a max instead of an if
 					//curMax = max(curMax, OPT[j][l]);
 				}
+				// Add value of event k
 				OPT[j][k] = OPT[k][j] = events[k].getValue() + curMax;
-				if (j != 0) selectedEventsP1[j][k].insert(j);
-				if (k != 0) selectedEventsP2[j][k].insert(k);
-				if (k != 0) selectedEventsP1[k][j].insert(k);
-				if (j != 0) selectedEventsP2[k][j].insert(j);
+				// Add event k to solution set
+				// Note that event j is already present in appropriate solution set, so need not be added here
+				selectedEventsP2[j][k].insert(k);
+				selectedEventsP1[k][j].insert(k);
 			}
 		}
 	}
@@ -80,6 +92,7 @@ int main() {
 	int c[NUM_EVENTS];
 	memset(OPT, 0, sizeof(OPT));
 
+	// Set up test problem
 	Job events[NUM_EVENTS+1];
 	events[1] = Job(1,4,4);
 	events[2] = Job(1,4,1);
@@ -94,16 +107,16 @@ int main() {
 	events[11] = Job(10,15,4);
 	events[12] = Job(10,15,3);
 
+	// Sort by end time (and weight, though that's not required)
 	QuickSort<Job>(events, 0, NUM_EVENTS);
 
+	// Calculate the latest possible prior non-conflicting event
 	CalcConflicts(events, c, NUM_EVENTS + 1);
 
-	try {
-		CalcOptimal(events, c, NUM_EVENTS);
-	} catch (const char e) {
-		cout << "Error: " << e;
-	}
+	// Calculate optimal solution for all possible combinations
+	CalcOptimal(events, c, NUM_EVENTS);
 
+	// Determine maximum value of solution for all events
 	int maxPoss = 0;
 	int finalEvents[2];
 	for (int j = 1; j <= NUM_EVENTS; ++j) {
@@ -116,7 +129,7 @@ int main() {
 		}
 	}
 
-
+	// Display solution
 	cout << "Events selected by person 1: ";
 	for (int const &event: selectedEventsP1[finalEvents[0]][finalEvents[1]]) {
 		cout << event << " ";
