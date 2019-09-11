@@ -62,7 +62,7 @@ void CalcOptimal(Job events[], int c[], const int NUM_EVENTS) {
 				// Reset curMax each time
 				int curMax = 0;
 				// Loop through all events guaranteed not to conflict with an earlier choice
-				for (int l = c[j]; l <= c[k]; ++l) {
+				for (int l = 0; l <= c[k]; ++l) {
 					if (OPT[j][l] > curMax) {
 						curMax = OPT[j][l];
 						selectedEventsP1[j][k].clear();
@@ -116,11 +116,12 @@ int main() {
 	// Calculate optimal solution for all possible combinations
 	CalcOptimal(events, c, NUM_EVENTS);
 
+	int lastEvent = NUM_EVENTS;
 	// Determine maximum value of solution for all events
 	int maxPoss = 0;
 	int finalEvents[2];
-	for (int j = 1; j <= NUM_EVENTS; ++j) {
-		for (int k = 1; k <= NUM_EVENTS; ++k) {
+	for (int j = 1; j <= lastEvent; ++j) {
+		for (int k = 1; k <= lastEvent; ++k) {
 			if (OPT[j][k] > maxPoss) {
 				maxPoss = OPT[j][k];
 				finalEvents[0] = j;
