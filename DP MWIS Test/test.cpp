@@ -11,7 +11,12 @@
 #include <iostream>
 #include <algorithm>
 #include <vector>
-using std::max; using std::cout; using std::min;
+using std::max; using std::cout; using std::max;
+
+const int NUM_EVENTS = 12;
+int OPT[NUM_EVENTS + 1][NUM_EVENTS + 1];
+std::set<int> selectedEventsP1[NUM_EVENTS+1][NUM_EVENTS+1];
+std::set<int> selectedEventsP2[NUM_EVENTS+1][NUM_EVENTS+1];
 
 // Determine latest possible non-conflicting event for each event l
 void CalcConflicts(Job jobs[], int c[], int size) {
@@ -33,56 +38,47 @@ void CalcConflicts(Job jobs[], int c[], int size) {
 }
 
 // Determine value of optimal solution
-int CalcOptimal(Job events[], int c[], const int NUM_EVENTS) {
-	int OPT[NUM_EVENTS + 1][NUM_EVENTS + 1][1<<NUM_EVENTS];
-	memset(OPT, -1, sizeof(OPT));
-	int option1, option2, option3, option4;
+void CalcOptimal(Job events[], int c[], const int NUM_EVENTS) {
+	const int INF = 1<<16;
 
-	// Base case-ish -- when no one goes to anything, value is 0
-	// Note that if all possible events have already been attended, value is also 0, but this is accounted for on the fly
-	for (int i = 0; i < 1<<NUM_EVENTS; ++i) {
-		OPT[0][0][i] = 0;
-	}
+	// Base case -- when no one goes to anything, value is 0
+	OPT[0][0] = 0;
+
 
 	// Loop over all possible combinations of j, k, and already-chosen events
 	for (int j = 0; j < NUM_EVENTS + 1; ++j) {
 		for (int k = j; k < NUM_EVENTS + 1; ++k) {
-			// mask is k bits long. The n-th bit is unset if event n has been used.
-			for (int mask = (1 << k) - 1; mask >= 0; --mask) {
-				// k > j
-				// In general, can choose neither j nor k, only k, only j, or both
-				if (j > 0) {
-					option1 = OPT[j-1][k-1][mask >> 1];
-					option2 = (OPT[j-1][c[k]][(mask &~ 1) >> min(k-(j-1), k-c[k])] + events[k].getValue())*(mask & 1U); // Check if we've used k yet
-					option3 = (OPT[c[j]][k-1][(mask &~ (1UL << (k-j))) >> min(k-c[j], 1)] + events[j].getValue())*((mask >> (k-j)) & 1U); // Check if we've used j yet. The bit of interest is a distance k-j from the rightmost bit.
-					// Can't take both j and k if they are equal
-					if(j != k) {
-						option4 = (OPT[c[j]][c[k]][(mask &~ (1UL << (j-1)) &~ (1UL << (k-1))) >> min(k-c[k], k-c[j])] + events[j].getValue() + events[k].getValue())*((mask >> (k-j)) & 1U)*(mask & 1U);
-					} else {
-						option4 = 0;
+			if (j == k) {
+				if (j != 0)	OPT[j][k] = -INF;
+			} else {
+				int curMax = 0;
+				for (int l = c[j]; l <= c[k]; ++l) {
+					if (OPT[j][l] > curMax) {
+						curMax = OPT[j][l];
+						selectedEventsP1[j][k].clear();
+						selectedEventsP2[j][k].clear();
+						selectedEventsP1[k][j].clear();
+						selectedEventsP2[k][j].clear();
+						selectedEventsP1[j][k] = selectedEventsP1[j][l];
+						selectedEventsP2[j][k] = selectedEventsP2[j][l];
+						selectedEventsP1[k][j] = selectedEventsP1[l][j];
+						selectedEventsP2[k][j] = selectedEventsP2[l][j];
 					}
-				// Easier to split j == 0 case out
-				} else {
-					option1 = 0;
-					option2 = 0;
-					option3 = OPT[0][k-1][mask >> 1];
-					option4 = (OPT[0][c[k]][(mask &~ (1UL << (k-1))) >> (k-c[k])] + events[k].getValue())*(mask & 1U);
+					//curMax = max(curMax, OPT[j][l]);
 				}
-				// Symmetric across major diagonal
-				// Take largest value
-				OPT[j][k][mask] = OPT[k][j][mask] = max(max(max(option1, option2),option3),option4);
+				OPT[j][k] = OPT[k][j] = events[k].getValue() + curMax;
+				if (j != 0) selectedEventsP1[j][k].insert(j);
+				if (k != 0) selectedEventsP2[j][k].insert(k);
+				if (k != 0) selectedEventsP1[k][j].insert(k);
+				if (j != 0) selectedEventsP2[k][j].insert(j);
 			}
 		}
 	}
-
-	// Return solution to all events
-	// Easy to refactor to allow any solution to be output
-	return OPT[NUM_EVENTS][NUM_EVENTS][(1 << NUM_EVENTS)-1];
 }
 
 int main() {
-	const int NUM_EVENTS = 12;
 	int c[NUM_EVENTS];
+	memset(OPT, 0, sizeof(OPT));
 
 	Job events[NUM_EVENTS+1];
 	events[1] = Job(1,4,4);
@@ -102,6 +98,31 @@ int main() {
 
 	CalcConflicts(events, c, NUM_EVENTS + 1);
 
-	cout << CalcOptimal(events, c, NUM_EVENTS);
+	try {
+		CalcOptimal(events, c, NUM_EVENTS);
+	} catch (const char e) {
+		cout << "Error: " << e;
+	}
 
+	int maxPoss = 0;
+	int finalEvents[2];
+	for (int j = 1; j <= NUM_EVENTS; ++j) {
+		for (int k = 1; k <= NUM_EVENTS; ++k) {
+			if (OPT[j][k] > maxPoss) {
+				maxPoss = OPT[j][k];
+				finalEvents[0] = j;
+				finalEvents[1] = k;
+			}
+		}
+	}
+
+
+	cout << "Events selected by person 1: ";
+	for (int const &event: selectedEventsP1[finalEvents[0]][finalEvents[1]]) {
+		cout << event << " ";
+	}
+	cout << "\nEvents selected by person 2: ";
+	for (int const &event: selectedEventsP2[finalEvents[0]][finalEvents[1]]) {
+			cout << event << " ";
+		}
 }
